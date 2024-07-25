@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced English Grammar Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        #passage, #review {
+            white-space: pre-wrap;
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .line {
+            margin-bottom: 10px;
+        }
+        input {
+            width: calc(100% - 70px);
+            padding: 5px;
+            margin-top: 5px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 5px 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #result, #score, #level, #timer {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .hint-btn {
+            width: 60px;
+            margin-left: 5px;
+        }
+        #reviewToggle {
+            margin-bottom: 10px;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            input {
+                font-size: 16px;
+            }
+            #passage, #review {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Enhanced English Grammar Game</h1>
+    <div id="level"></div>
+    <div id="timer"></div>
+    <div id="passage"></div>
+    <button id="submitBtn">Submit Answers</button>
+    <div id="result"></div>
+    <div id="score"></div>
+    <button id="reviewToggle">Toggle Review Section</button>
+    <div id="review" style="display: none;"></div>
+
+    <script>
+        const passageEl = document.getElementById('passage');
+        const submitBtn = document.getElementById('submitBtn');
+        const resultEl = document.getElementById('result');
+        const scoreEl = document.getElementById('score');
+        const levelEl = document.getElementById('level');
+        const timerEl = document.getElementById('timer');
+        const reviewToggle = document.getElementById('reviewToggle');
+        const reviewEl = document.getElementById('review');
+
+        let currentLevel = 'P1';
+        let currentPassage = [];
+        let score = 0;
+        let timer;
+        let timeLeft;
+        let mistakes = [];
+
+        const levels = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6'];
+
+        const passages = {
+            P1: [
+                { text: "The cat is sleeping on the bed.", correct: "T", explanation: "This sentence is grammatically correct." },
+                { text: "I have two toy.", correct: "I have two toys.", explanation: "The noun 'toy' should be plural because it's preceded by 'two'." },
+                { text: "She like to play with her friends.", correct: "She likes to play with her friends.", explanation: "The verb 'like' should be 'likes' to agree with the singular subject 'She'." },
+                { text: "The sun is shining brightly.", correct: "T", explanation: "This sentence is grammatically correct." },
+                { text: "We goes to school every day.", correct: "We go to school every day.", explanation: "The verb 'goes' should be 'go' to agree with the plural subject 'We'." },
+                { text: "The dog barks loudly.", correct: "T", explanation: "This sentence is grammatically correct." },
+                { text: "He have a red ball.", correct: "He has a red ball.", explanation: "The verb 'have' should be 'has' to agree with the singular subject 'He'." },
+                { text: "The flowers are beautiful.", correct: "T", explanation: "This sentence is grammatically correct." },
+                { text: "They is happy.", correct: "They are happy.", explanation: "The verb 'is' should be 'are' to agree with the plural subject 'They'." },
+                { text: "I can read this book.", correct: "T", explanation: "This sentence is grammatically correct." }
+            ],
+            // Add more levels here with similar structure
+        };
+
+        function startTimer() {
+            timeLeft = 300; // 5 minutes
+            timer = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = `Time left: ${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    checkAnswers(true);
+                }
+            }, 1000);
+        }
+
+        function displayPassage() {
+            currentPassage = passages[currentLevel];
+            passageEl.innerHTML = '';
+            currentPassage.forEach((line, index) => {
+                const lineEl = document.createElement('div');
+                lineEl.className = 'line';
+                lineEl.innerHTML = `
+                    ${index + 1}. ${line.text}<br>
+                    <input type="text" id="answer${index}" placeholder="Enter 'T' if correct, or type the correction">
+                    <button class="hint-btn" onclick="showHint(${index})">Hint</button>
+                `;
+                passageEl.appendChild(lineEl);
+            });
+            levelEl.textContent = `Current Level: ${currentLevel}`;
+            startTimer();
+        }
+
+        function showHint(index) {
+            const line = currentPassage[index];
+            alert(line.correct === "T" ? "This line is correct." : "This line contains a grammar mistake.");
+        }
+
+        function checkAnswers(timeUp = false) {
+            clearInterval(timer);
+            score = 0;
+            let feedback = '';
+            currentPassage.forEach((line, index) => {
+                const userAnswer = document.getElementById(`answer${index}`).value.trim();
+                if (userAnswer.toLowerCase() === line.correct.toLowerCase()) {
+                    score++;
+                    feedback += `Line ${index + 1}: Correct!<br>`;
+                } else {
+                    feedback += `Line ${index + 1}: Incorrect. The correct answer is: "${line.correct}"<br>`;
+                    feedback += `Explanation: ${line.explanation}<br><br>`;
+                    mistakes.push({level: currentLevel, line: index + 1, correct: line.correct, explanation: line.explanation});
+                }
+            });
+
+            const totalLines = currentPassage.length;
+            const passThreshold = Math.ceil(totalLines / 2);
+
+            if (timeUp) {
+                feedback = "Time's up! " + feedback;
+            }
+
+            if (score >= passThreshold && !timeUp) {
+                feedback += `<br>Congratulations! You passed this level with a score of ${score}/${totalLines}.<br>`;
+                const nextLevelIndex = levels.indexOf(currentLevel) + 1;
+                if (nextLevelIndex < levels.length) {
+                    currentLevel = levels[nextLevelIndex];
+                    feedback += `You've advanced to level ${currentLevel}!`;
+                } else {
+                    feedback += "You've completed all levels! Well done!";
+                }
+            } else {
+                feedback += `<br>You scored ${score}/${totalLines}. You need to score at least ${passThreshold} to pass. Try again!`;
+            }
+
+            resultEl.innerHTML = feedback;
+            scoreEl.textContent = `Score: ${score}/${totalLines}`;
+            updateReviewSection();
+
+            if (score >= passThreshold && !timeUp) {
+                setTimeout(() => {
+                    displayPassage();
+                    resultEl.innerHTML = '';
+                    scoreEl.textContent = '';
+                }, 5000);
+            }
+        }
+
+        function updateReviewSection() {
+            reviewEl.innerHTML = '<h3>Review of Previous Mistakes</h3>';
+            mistakes.forEach((mistake, index) => {
+                reviewEl.innerHTML += `
+                    <p>
+                        <strong>Level ${mistake.level}, Line ${mistake.line}:</strong><br>
+                        Correct: ${mistake.correct}<br>
+                        Explanation: ${mistake.explanation}
+                    </p>
+                `;
+            });
+        }
+
+        submitBtn.addEventListener('click', () => checkAnswers());
+
+        reviewToggle.addEventListener('click', () => {
+            reviewEl.style.display = reviewEl.style.display === 'none' ? 'block' : 'none';
+        });
+
+        displayPassage();
+    </script>
+</body>
+</html>
